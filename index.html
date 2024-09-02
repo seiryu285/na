@@ -33,7 +33,7 @@
             background-color: white;
             padding: 2rem;
             border-radius: 10px;
-            max-width: 800px;
+            max-width: 90%;
             max-height: 80vh;
             overflow-y: auto;
         }
@@ -79,6 +79,17 @@
             pointer-events: none;
             transition: all 0.3s ease;
             opacity: 0;
+        }
+        @media (max-width: 768px) {
+            #navigation-bar {
+                bottom: 10px;
+                padding: 5px 10px;
+                gap: 10px;
+            }
+            .nav-icon {
+                width: 20px;
+                height: 20px;
+            }
         }
     </style>
 </head>
@@ -262,7 +273,7 @@
         // Create buttons
         const buttonRadius = 0.15;
         const buttonHeight = 0.08;
-        const buttonColors = [0x4444ff, 0xff4444, 0x44ff44, 0xffff44, 0xff44ff];
+        const buttonColors = [0x4444ff, 0xff4444, 0x44ff44, 0xffff44];
         const buttonIcons = ['H', 'F', 'A', 'C'];
         const buttons = [];
 
@@ -352,7 +363,7 @@
             oscillator.stop(audioContext.currentTime + 0.2);
         }
 
-        function onMouseMove(event) {
+        function onPointerMove(event) {
             const rect = renderer.domElement.getBoundingClientRect();
             mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
             mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
@@ -389,7 +400,7 @@
             }
         }
 
-        function onClick(event) {
+        function onPointerUp(event) {
             raycaster.setFromCamera(mouse, camera);
             const intersectsButtons = raycaster.intersectObjects(buttons.map(b => b.children[1]));
 
@@ -404,23 +415,60 @@
             }
         }
 
-        let lastScrollTime = 0;
-        const scrollCooldown = 50; // ms
+        let isRotating = false;
+        let previousTouchX = 0;
+        let currentTouchX = 0;
 
-        function onScroll(event) {
-            event.preventDefault();
-            const currentTime = Date.now();
-            if (currentTime - lastScrollTime < scrollCooldown) return;
-            lastScrollTime = currentTime;
+        function onTouchStart(event) {
+            isRotating = true;
+            previousTouchX = event.touches[0].clientX;
+        }
 
-            const rotationSpeed = 0.005;
-            platformGroup.rotation.y += event.deltaY * rotationSpeed;
+        function onTouchMove(event) {
+            if (!isRotating) return;
+            currentTouchX = event.touches[0].clientX;
+            const deltaX = currentTouchX - previousTouchX;
+            platformGroup.rotation.y += deltaX * 0.01;
+            previousTouchX = currentTouchX;
             playScrollSound();
         }
 
-        window.addEventListener('mousemove', onMouseMove);
-        window.addEventListener('click', onClick);
-        window.addEventListener('wheel', onScroll);
+        function onTouchEnd() {
+            isRotating = false;
+        }
+
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
+        window.addEventListener('touchstart', onTouchStart);
+        window.addEventListener('touchmove', onTouchMove);
+        window.addEventListener('touchend', onTouchEnd);
+
+        // Handle window resize
+        window.addEventListener('resize', onWindowResize, false);
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            customerSphere.rotation.y += 0.001;
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Overlay functions
+        function showOverlay(id) {
+            document.getElementById(`${id}-overlay`).style.display = 'flex';
+        }
+
+        function hideOverlay(id) {
+            document.getElementById(`${id}-overlay`).style.display = 'none';
+        }
 
         // Navigation bar hover effect
         const navBar = document.getElementById('navigation-bar');
@@ -448,33 +496,6 @@
                 e.target.style.filter = 'none';
             });
         });
-
-        // Animation loop
-        function animate() {
-            requestAnimationFrame(animate);
-            
-            customerSphere.rotation.y += 0.001;
-
-            renderer.render(scene, camera);
-        }
-        animate();
-
-        // Handle window resize
-        window.addEventListener('resize', onWindowResize, false);
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
-
-        // Overlay functions
-        function showOverlay(id) {
-            document.getElementById(`${id}-overlay`).style.display = 'flex';
-        }
-
-        function hideOverlay(id) {
-            document.getElementById(`${id}-overlay`).style.display = 'none';
-        }
     </script>
 </body>
 </html>
